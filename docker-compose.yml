@@ -13,10 +13,43 @@ services:
       - traefik.backend=traefik
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+  web:
+    container_name: web
+    depends_on: 
+      - api
+    build: 
+      context: ./deps/front
+      dockerfile: Dockerfile
+    labels:
+      - traefik.enable=true
+      - traefik.port=8000
+      - traefik.frontend.rule=Host:vuefinances.${DOMAIN}
+      - traefik.backend=web
 
+  api:
+    container_name: api
+    depends_on:
+      - prisma
+    build:
+      context: ./deps/back
+      dockerfile: Dockerfile
+    labels:
+      - traefik.enable=true
+      - traefik.port=4000
+      - traefik.frontend.rule=Host:api.vuefinances.${DOMAIN}
+      - traefik.backend=api
+    environment:
+      CLIENT_HOSTS:
+      JWT_SECRET:
+      NODE_ENV:
+      PRISMA_ENDPOINT: http://prisma:4466
+      PRISMA_SERVICE: 
+      PRISMA_STAGE:
+      PRISMA_SERVICE_SECRET:
+  
   prisma:
     container_name: prisma
-    image: prismagraphql/prisma:1.28
+    image: prismagraphql/prisma:1.27
     restart: always
     depends_on:
       - postgres
@@ -38,26 +71,6 @@ services:
       - traefik.port=${PRISMA_PORT}
       - traefik.frontend.rule=Host:prisma.${DOMAIN}
       - traefik.backend=prisma
-  api:
-    container_name: api
-    depends_on:
-      - prisma
-    build:
-      context: ./deps/back
-      dockerfile: Dockerfile
-    labels:
-      - traefik.enable=true
-      - traefik.port=4000
-      - traefik.frontend.rule=Host:api.vuefinances.${DOMAIN}
-      - traefik.backend=api
-    environment:
-      CLIENT_HOSTS:
-      JWT_SECRET:
-      NODE_ENV:
-      PRISMA_ENDPOINT: http://prisma:4466
-      PRISMA_SERVICE:
-      PRISMA_STAGE:
-      PRISMA_SERVICE_SECRET:
 
   postgres:
     container_name: postgres
@@ -70,6 +83,6 @@ services:
       - traefik.enable=true
       - traefik.backend=postgres
     volumes:
-      - postgres:/var/lib/postgresql/data
+      - postgres:/var/lib/postgesql/data
 volumes:
   postgres:
